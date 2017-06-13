@@ -1,0 +1,39 @@
+[toc]
+# 概念
+ Autorelease pool 是OC的一种内存自动回收机制，用来回收临时变量和对象。自动释放池自身销毁时他中间的变量才会被销毁。之前的Xcode的自动释放池是半自动的，需要手动释放，但是新版Xcode不需要手动释放，释放了反而会报错。 
+# 使用
+任何OC对象，只要调用autorelease方法，就会把该对象放到栈顶释放池中。就是如果我们只有一个释放池，我们将它放入栈中，这时候，我们再设一个释放池，就会放在离栈顶近的地方。这时，我们给对象开辟一段空间，它就会优先放在离栈顶近的释放池中。
+```
+NSAutoreleasePool *pool=[[NSAutoreleasePool alloc]init];
+
+
+[pool release];
+```
+现在的Xcode中是这样的
+```
+@autoreleasepool{
+    
+}
+```
+这两种写法完全等价，关键字@aotureleasepool{等于NSAutoreleasePool *pool=[[NSAutoreleasePool alloc]init];  
+}等价于[pool release]; 
+# 举例
+假设我们创建了一个类Person,它有一个子类Dog,它们都有有基本的方法，有属性。我们来看两个例子，对比一下：（我们假设创建一个狗的对象dog，一个人的对象叫xiaoli,小丽有一个方法setDog，也就是可以遛狗，但是不能拥有这条狗）  
+```
+Dog *dog1=[[Dog alloc]init];
+[xiaoli setDog:dog1];
+[dog1 release];
+```
+这段代码最后一句是没必要的，但是我们需要她说明点问题。在这段代码中，小丽拥有这条狗，所以我们释放dog1时，Dog的计数器会减为0。但是下面这段代码就不一样了
+```
+[xiaoli setDog:[[Dog alloc]init]];
+```
+在这里，我们创建Dog对象的时候计数器加一，小丽调用这条狗，计数器又加一，这个时候计数器为2.在调用完后我们释放小丽这个对象，计数器减1 。但是这时候计数器还是1 ,就是狗 还在。就会造成内存泄露问题。我们用aoturelease的时候也是可以的
+```
+Dog *dog1=[[Dog alloc]init]aoturelease];
+[xiaoli setDog:dog1];
+```
+这个时候Dog就在自动释放池中，dog1这个指针只能指向它，并不能控制它。这个时候小丽再调用这个对象，还可以使计数器加1。这里不能【dog1 release】，因为dog1不能控制Dog开辟的内存。下面这种也是对的
+```
+[xiaoli setDog:[[Dog alloc]init]aotulease];
+```
